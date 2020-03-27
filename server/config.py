@@ -18,16 +18,17 @@ class Configure(object):
         config.read(config_dir.joinpath('server.ini'))
 
         # 获得字符串
-        self.KafkaCacTransTopic = config.get('server', 'strtype')
+        self.strtype = config.get('server', 'strtype')
 
         # 获得bool类型
-        self.IgnoreUrlContainRcptdomain = config.getboolean('server','booltype')
+        self.booltype = config.getboolean('server','booltype')
 
         # 获得int类型
-        self.CsbDBPort = config.getint('server', 'inttype')
+        self.inttype = config.getint('server', 'inttype')
 
         # 获得float类型
-        self.KafkaTransDiscardHours = config.getfloat('server', 'floattype')
+        self.floattype = config.getfloat('server', 'floattype')
 
         # 解析路径--字符串
-        self.BadMailPath = pathlib.Path(config.get('server', 'pathtype')).resolve()
+        self.pathtype = pathlib.Path(config.get('server', 'pathtype')).resolve()
+        self.LoggingConfPath = pathlib.Path(config.get('server', 'LoggingConfPath')).resolve()
