@@ -5,7 +5,7 @@
     这里示例如何使用ORM
 
 """
-# 有了ORM，我们就可以把需要的表用Model表示出来：
+# 有了ORM，我们就可以把需要的表（这里是User表）用Model表示出来（继承Model）：
 import time, uuid
 
 from  server.models.orm import Model, StringField, BooleanField, FloatField, TextField
