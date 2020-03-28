@@ -27,6 +27,8 @@ ProjectName
 │   ├── __main__.py        # 程序入口
 │   ├── models
 │   │   └── __init__.py
+│   │   └──orm.py          # mysql异步模块
+│   │   └──mysqlModel.py   # mysql同步模块
 │   ├── test               # 单元测试
 │   │   └── __init__.py
 │   └── views
@@ -34,3 +36,7 @@ ProjectName
 ├── requirements.txt       # 存放依赖的外部Python包列表
 └── setup.py               # 安装、部署、打包的脚本
 ```
+
+
+# 使用方式
+根据需要，把不需要的模块删除，如models中的orm.py
