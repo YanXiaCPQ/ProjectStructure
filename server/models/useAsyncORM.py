@@ -8,7 +8,7 @@
 # 有了ORM，我们就可以把需要的表（这里是User表）用Model表示出来（继承Model）：
 import time, uuid
 
-from  server.models.orm import Model, StringField, BooleanField, FloatField, TextField
+from  server.models.asyncorm import Model, StringField, BooleanField, FloatField, TextField
 
 def next_id():
     return '%015d%s000' % (int(time.time() * 1000), uuid.uuid4().hex)
@@ -28,17 +28,23 @@ class User(Model):
 """
 ------------------------------------------------   一条分割线  ----------------------------------------------------
 """
-#  编写数据访问代码
 
-from server.models import orm 
-import asyncio
-loop = asyncio.get_event_loop()
+
+from server.models import asyncorm
+
 def test():
-    yield from orm.create_pool(loop, user='www-data', password='www-data', database='awesome')
+    loop=asyncio.get_event_loop() 
+    yield from asyncorm.create_pool(loop, user='www-data', password='www-data', database='awesome')
 
     u = User(name='Test', email='test@example.com', passwd='1234567890', image='about:blank')
 
     yield from u.save()
-
+"""
+user=User(id="100001",name="Andy",password="*****")
+user.save()  //保存到数据库
+user=User.findById("100001") #从数据库中找出id为"100001"的用户
+user.update(password="*********")  #更改id为"100001"的用户密码
+users=User.findAll() #取出users表中全部数据
+"""
 #for x in test():
 #    pass
