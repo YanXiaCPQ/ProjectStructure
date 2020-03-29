@@ -31,14 +31,12 @@ class User(Model):
 #  编写数据访问代码
 
 from server.models import orm 
-import asyncio
-loop = asyncio.get_event_loop()
 def test():
-    yield from orm.create_pool(loop, user='www-data', password='www-data', database='awesome')
+    orm.create_dbconnect( user='www-data', password='www-data', database='awesome')
 
     u = User(name='Test', email='test@example.com', passwd='1234567890', image='about:blank')
 
-    yield from u.save()
+    u.save()
 
 #for x in test():
 #    pass

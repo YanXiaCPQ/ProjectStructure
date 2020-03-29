@@ -1,76 +1,69 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# 非异步orm模型
+
 # 所有数据库操作都使用orm模型，一张库表对应一个类，一个类包含增删查改部分或全部操作
 
 # 这里示例，如何抄一个orm示例，来自廖雪峰 https://github.com/michaelliao/awesome-python3-webapp/blob/day-03/www/orm.py
 
 
-
-__author__ = 'Michael Liao'
-
-import asyncio
-import aiomysql
 from server.logger import sqllog
+import pymysql
 
+
+cursor = conn.cursor()  
+sql = """ d """
+cursor.execute(sql)
+cursor.close()
+conn.close()
 
 def log(sql, args=()):
     sqllog.info('SQL: %s' % sql)
 
-loop = asyncio.get_event_loop()
-async def create_pool( **kw):
-    sqllog.info('create database connection pool...')
-    global __pool
-    __pool = await aiomysql.create_pool(
-        host=kw.get('host', 'localhost'),
-        port=kw.get('port', 3306),
-        user=kw['user'],
-        password=kw['password'],
-        db=kw['db'],
-        charset=kw.get('charset', 'utf8'),
-        autocommit=kw.get('autocommit', True),
-        maxsize=kw.get('maxsize', 10),
-        minsize=kw.get('minsize', 1),
-        loop=loop
-    )
+def create_dbconnect(**kw):
+    sqllog.info('create database connection ...')
+    global conn
+    conn = pymysql.connect(
+	host=kw.get('host', 'localhost'), 
+	user=kw['user'],
+    password=kw['pasword'],
+	database=kw['db'],
+	charset=kw.get('charset', 'utf8'))
 
-async def select(sql, args, size=None):
+
+def select(sql, args, size=None):
     log(sql, args)
-    global __pool
-    async with __pool.get() as conn:
-        async with conn.cursor(aiomysql.DictCursor) as cur:
-            await cur.execute(sql.replace('?', '%s'), args or ())
-            if size:
-                rs = await cur.fetchmany(size)
-            else:
-                rs = await cur.fetchall()
-        sqllog.info('rows returned: %s' % len(rs))
-        return rs
+    global conn
+    cursor = conn.cursor()  
+    cursor.execute(sql.replace('?', '%s'), args or ())
+    if size:
+        rs =  cursor.fetchmany(size)
+    else:
+        rs =  cursor.fetchall()
+    sqllog.info('rows returned: %s' % len(rs))
+    return rs
 
-async def execute(sql, args, autocommit=True):
+
+def execute(sql, args, autocommit=True):
     log(sql)
-    async with __pool.get() as conn:
+    global conn
+    if not autocommit:
+        conn.begin()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(sql.replace('?', '%s'), args)
+        affected = cursor.rowcount
         if not autocommit:
-            await conn.begin()
-        try:
-            async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute(sql.replace('?', '%s'), args)
-                affected = cur.rowcount
-            if not autocommit:
-                await conn.commit()
-        except BaseException as e:
-            sqllog.error(e)
-            if not autocommit:
-                await conn.rollback()
-            raise
-        return affected
+            conn.commit()
+    except BaseException as e:
+        sqllog.error(e)
+        if not autocommit:
+            conn.rollback()
+        raise
+    return affected
 
 def create_args_string(num):
-    # 注释为原文，优化一下
-    #L = []
-    #for n in range(num):
-    #    L.append('?')
-    #return ', '.join(L)
     return ', '.join('?' * num)
 
 class Field(object):
@@ -173,7 +166,7 @@ class Model(dict, metaclass=ModelMetaclass):
         return value
 
     @classmethod
-    async def findAll(cls, where=None, args=None, **kw):
+    def findAll(cls, where=None, args=None, **kw):
         ' find objects by where clause. '
         sql = [cls.__select__]
         if where:
@@ -196,45 +189,45 @@ class Model(dict, metaclass=ModelMetaclass):
                 args.extend(limit)
             else:
                 raise ValueError('Invalid limit value: %s' % str(limit))
-        rs = await select(' '.join(sql), args)
+        rs =  select(' '.join(sql), args)
         return [cls(**r) for r in rs]
 
     @classmethod
-    async def findNumber(cls, selectField, where=None, args=None):
+    def findNumber(cls, selectField, where=None, args=None):
         ' find number by select and where. '
         sql = ['select %s _num_ from `%s`' % (selectField, cls.__table__)]
         if where:
             sql.append('where')
             sql.append(where)
-        rs = await select(' '.join(sql), args, 1)
+        rs =  select(' '.join(sql), args, 1)
         if len(rs) == 0:
             return None
         return rs[0]['_num_']
 
     @classmethod
-    async def find(cls, pk):
+    def find(cls, pk):
         ' find object by primary key. '
-        rs = await select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
+        rs =  select('%s where `%s`=?' % (cls.__select__, cls.__primary_key__), [pk], 1)
         if len(rs) == 0:
             return None
         return cls(**rs[0])
 
-    async def save(self):
+    def save(self):
         args = list(map(self.getValueOrDefault, self.__fields__))
         args.append(self.getValueOrDefault(self.__primary_key__))
-        rows = await execute(self.__insert__, args)
+        rows =  execute(self.__insert__, args)
         if rows != 1:
             sqllog.warn('failed to insert record: affected rows: %s' % rows)
 
-    async def update(self):
+    def update(self):
         args = list(map(self.getValue, self.__fields__))
         args.append(self.getValue(self.__primary_key__))
-        rows = await execute(self.__update__, args)
+        rows =  execute(self.__update__, args)
         if rows != 1:
             sqllog.warn('failed to update by primary key: affected rows: %s' % rows)
 
-    async def remove(self):
+    def remove(self):
         args = [self.getValue(self.__primary_key__)]
-        rows = await execute(self.__delete__, args)
+        rows =  execute(self.__delete__, args)
         if rows != 1:
             sqllog.warn('failed to remove by primary key: affected rows: %s' % rows)
