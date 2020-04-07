@@ -14,7 +14,7 @@ class MysqlModel(object):
         self.port = kw.get('port', 3306)	
         self.database = kw['db']
         self.charset = kw.get('charset', 'utf8')
-        self.conn = pymysql.connect(host=self.host, user=self.user, password=self.password, port=self.port)
+        self.conn = pymysql.connect(host=self.host, db=self.database, user=self.user, password=self.password, port=self.port, charset=self.charset)
 
     def update(self, **kwargs):
         sqllog.info('update data')
